@@ -1,0 +1,25 @@
+{
+  "name": "hakerski-bot",
+  "version": "1.0.0",
+  "description": "Profesjonalny bot Discord dla serwera Hakerski - Weryfikacja, Regulamin, Self-Role, Statystyki, Powitania oraz Moderacja",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch-path=src --watch-path=index.js --watch-path=config.js index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "hakerski",
+    "components-v2",
+    "moderation",
+    "verification",
+    "stats"
+  ],
+  "author": "Hakerski",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^16.4.7"
+  }
+}
