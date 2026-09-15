@@ -1,14 +1,12 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const http = require('http');
-const config = require('./config');[cite: 3, 4]
-const { loadCommands, registerSlashCommands } = require('./src/handlers/commandHandler');[cite: 4]
+const config = require('./config');
+const { loadCommands, registerSlashCommands } = require('./src/handlers/commandHandler');
 
-// Bezpieczny import eventHandlera (działa niezależnie od tego, jak go napisałeś)
 const eventHandlerModule = require('./src/handlers/eventHandler');
 const loadEvents = typeof eventHandlerModule === 'function' ? eventHandlerModule : eventHandlerModule.loadEvents;
 
-// Serwer HTTP dla Rendera (zapobiega błędom portu)
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Bot is running!');
@@ -42,7 +40,7 @@ async function start() {
     await registerSlashCommands(client, commandsData);
   }
 
-  if (!config.token) {[cite: 3, 4]
+  if (!config.token) {
     console.error('Brak tokenu bota w .env');
     process.exit(1);
   }
