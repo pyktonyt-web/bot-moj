@@ -2,8 +2,8 @@ require('dotenv').config();
 
 module.exports = {
   token: process.env.DISCORD_TOKEN || '',
-  clientId: process.env.CLIENT_ID || '1549087705789497454',
-  botName: 'Hakerski - BOT',
+  clientId: process.env.CLIENT_ID || '1537479129832759326',
+  botName: 'Hakerski Bot',
   brandName: 'Hakerski™',
   systemFooter: '© 2026 Hakerski Bot',
 
