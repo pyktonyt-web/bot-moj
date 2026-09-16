@@ -1,6 +1,10 @@
-// Przykład struktury pliku src/utils/componentsV2.js
-
-const { TextDisplayBuilder, SeparatorBuilder, ButtonBuilder } = require('discord.js');
+const { 
+  TextDisplayBuilder, 
+  SeparatorBuilder, 
+  ButtonBuilder, 
+  EmbedBuilder,
+  MessageFlags 
+} = require('discord.js');
 
 function createHeader(text, emoji) {
   return new TextDisplayBuilder().setContent(`### ${emoji} ${text}`);
@@ -10,27 +14,60 @@ function createSeparator() {
   return new SeparatorBuilder();
 }
 
-function createSectionWithButton(text, buttonLabel, customId, style, emoji) {
-  // Twoja implementacja sekcji z przyciskiem
+function createCallout(emoji, title, description) {
+  return new TextDisplayBuilder().setContent(`> **${emoji} ${title}**\n> ${description}`);
+}
+
+function createSectionWithButton(text) {
+  return new TextDisplayBuilder().setContent(text);
 }
 
 function createLogoMediaGallery() {
-  // Twoja implementacja galerii logo
+  // Zwraca pustą tablicę lub komponent galerii
+  return [];
 }
 
 function getLogoAttachment() {
-  // Zwracanie załącznika
+  // Zwracamy null bezpiecznie (w razie braku pliku graficznego)
+  return null;
 }
 
-function createFooter(text) {
+function createFooter(text = '© 2026 Team Hekera') {
   return new TextDisplayBuilder().setContent(`-* ${text}`);
+}
+
+function buildSuccessResponse(title, description) {
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(`✅ ${title}`)
+        .setDescription(description)
+        .setColor('#57F287')
+    ],
+    flags: MessageFlags.Ephemeral
+  };
+}
+
+function buildErrorResponse(title, description) {
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(`❌ ${title}`)
+        .setDescription(description)
+        .setColor('#ED4245')
+    ],
+    flags: MessageFlags.Ephemeral
+  };
 }
 
 module.exports = {
   createSeparator,
   createHeader,
+  createCallout,
   createSectionWithButton,
   createLogoMediaGallery,
   getLogoAttachment,
-  createFooter
+  createFooter,
+  buildSuccessResponse,
+  buildErrorResponse
 };
