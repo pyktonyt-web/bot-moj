@@ -1,67 +1,84 @@
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { buildSuccessResponse, buildErrorResponse } = require('../utils/componentsV2');
+const { 
+  SlashCommandBuilder, 
+  PermissionFlagsBits, 
+  MessageFlags, 
+  ContainerBuilder, 
+  TextDisplayBuilder,
+  ButtonStyle
+} = require('discord.js');
+const { 
+  createSeparator, 
+  createHeader, 
+  createSectionWithButton, 
+  createLogoMediaGallery, 
+  getLogoAttachment, 
+  createFooter 
+} = require('../utils/componentsV2');
 const config = require('../../config');
 
 function buildRulesContainer() {
-  const description = [
-    'Hejka! 💬',
-    'Zanim zaczniesz działać — przeczytaj to uważnie. Dołączając, akceptujesz te zasady. 😎',
-    '',
-    '━━━━━━━━━━━━━━━',
-    '**💠┃1. SZACUNEK**',
-    '💬 Szanuj innych — bez wyzywania i kłótni.',
-    '🚫 Zero rasizmu, seksizmu, homofobii i toksyczności.',
-    '😎 Zachowuj kulturę – baw się, nie spinaj.',
-    '━━━━━━━━━━━━━━━',
-    '**🛡️┃2. ADMINI I MODZI**',
-    '👑 Decyzje administracji są ostateczne.',
-    '🧩 Nie dyskutuj publicznie – napisz na priv.',
-    '🤝 Szanuj ekipę, a ekipa uszanuje Ciebie.',
-    '━━━━━━━━━━━━━━━',
-    '**💬┃3. CZAT I KANAŁY**',
-    '🧠 Pisz na odpowiednich kanałach.',
-    '🚫 Zakaz spamu, floodu i nadużywania @everyone.',
-    '🧹 Bez reklam, łańcuszków i dziwnych linków.',
-    '━━━━━━━━━━━━━━━',
-    '**🎥┃4. TREŚCI**',
-    '🎮 Serwer o Robloxie i nagrywkach – trzymajmy się tematu.',
-    '🎶 Używaj tylko legalnych materiałów.',
-    '🙈 Bez NSFW, drastycznych lub obraźliwych treści.',
-    '━━━━━━━━━━━━━━━',
-    '**🚫┃5. ZAKAZY**',
-    '🔒 Nie podawaj danych – swoich ani cudzych.',
-    '👻 Nie podszywaj się pod innych.',
-    '🐍 Nie wysyłaj podejrzanych linków.',
-    '🚫 Nie wolno przeklinać',
-    '🔒 Zakaz wysyłania cheatów',
-    '━━━━━━━━━━━━━━━',
-    '**⚙️┃6. KARY**',
-    '⚠️ Ostrzeżenie → Mute → Kick → Ban.',
-    '🚪 Omijanie bana = perm ban.',
-    '🔧 Admin decyduje o karze.',
-    '━━━━━━━━━━━━━━━',
-    '✅ **Akceptując zasady – dołączasz do Teamu Hekera! 💥**',
-    '🎉 Baw się dobrze i nagrywaj z klasą!'
-  ].join('\n');
+  const header = createHeader('REGULAMIN SERWERA × TEAM HEKERA', '📜');
 
-  const embed = new EmbedBuilder()
-    .setTitle('📜┃REGULAMIN SERWERA')
-    .setDescription(description)
-    .setColor(config.colors?.primary || '#5865F2')
-    .setFooter({ text: '© 2026 Team Hekera' });
-
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('btn_accept_rules')
-      .setLabel('Akceptuję Regulamin')
-      .setStyle(ButtonStyle.Success)
-      .setEmoji('✅')
+  const intro = new TextDisplayBuilder().setContent(
+    `> **Hejka!** 💬\n` +
+    `> Zanim zaczniesz działać — przeczytaj to uważnie. Dołączając, akceptujesz te zasady. 😎`
   );
 
-  return {
-    embeds: [embed],
-    components: [row]
-  };
+  // Zabezpieczenie przed pustą lub brakującą tablicą reguł w config.js
+  const rulesList = (config.rules && config.rules.length > 0) ? config.rules : [
+    {
+      number: 1,
+      title: 'Zasada domyślna',
+      emoji: '📌',
+      points: ['Uzupełnij tablicę rules w pliku config.js']
+    }
+  ];
+
+  const ruleDisplays = rulesList.map(r => {
+    const pointsText = (r.points && r.points.length > 0) ? r.points.map(p => `> ${p}`).join('\n') : '> Brak punktów.';
+    const content = `▎ ${r.emoji} ' **${r.number}. ${r.title}**\n` + pointsText;
+    return new TextDisplayBuilder().setContent(content);
+  });
+
+  const outro = new TextDisplayBuilder().setContent(
+    `> ✅ **Akceptując zasady – dołączasz do Teamu Hekera!** 💥\n` +
+    `> 🎉 **Baw się dobrze i nagrywaj z klasą!**`
+  );
+
+  const acceptSection = createSectionWithButton(
+    "🛡️ ' **Akceptacja Zasad**\nKliknij poniższy przycisk, aby potwierdzić zapoznanie się z regulaminem.",
+    "✅ Akceptuję Regulamin",
+    "btn_accept_rules",
+    ButtonStyle.Success,
+    "✅"
+  );
+
+  const container = new ContainerBuilder()
+    .setAccentColor(config.colors?.primary || '#5865F2')
+    .addTextDisplayComponents(header)
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(intro)
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(...ruleDisplays)
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(outro)
+    .addSeparatorComponents(createSeparator())
+    .addSectionComponents(acceptSection);
+
+  // Bezpieczne dodanie galerii, jeśli istnieje
+  const mediaGallery = createLogoMediaGallery();
+  if (mediaGallery && (Array.isArray(mediaGallery) ? mediaGallery.length > 0 : true)) {
+    try {
+      container.addMediaGalleryComponents(mediaGallery);
+      container.addSeparatorComponents(createSeparator());
+    } catch (e) {
+      // Ignorujemy błąd, jeśli galeria jest pusta
+    }
+  }
+
+  container.addTextDisplayComponents(createFooter('© 2026 Team Hekera'));
+
+  return container;
 }
 
 module.exports = {
@@ -77,18 +94,38 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const targetChannel = interaction.options.getChannel('kanal') || interaction.channel;
+    const targetChannel = interaction.options.getChannel('kanal');
+    const container = buildRulesContainer();
+    
+    // Bezpieczne filtrowanie załącznika (zapobiega błędom [null])
+    const logoAttachment = getLogoAttachment();
+    const filesList = logoAttachment ? [logoAttachment] : [];
 
-    if (!targetChannel.isTextBased()) {
-      return await interaction.reply(buildErrorResponse('Błąd', 'Kanał musi być tekstowy!'));
+    if (targetChannel) {
+      if (!targetChannel.isTextBased()) {
+        return await interaction.reply({
+          content: 'Wskazany kanał musi być kanałem tekstowym.',
+          flags: MessageFlags.Ephemeral
+        });
+      }
+
+      await targetChannel.send({
+        flags: MessageFlags.IsComponentsV2,
+        components: [container],
+        files: filesList
+      });
+
+      return await interaction.reply({
+        content: `Panel regulaminu został wysłany na kanał ${targetChannel}.`,
+        flags: MessageFlags.Ephemeral
+      });
     }
 
-    const payload = buildRulesContainer();
-    await targetChannel.send(payload);
-
-    return await interaction.reply(
-      buildSuccessResponse('Wdrożono Regulamin', `Regulamin został wysłany na kanał ${targetChannel}.`)
-    );
+    return await interaction.reply({
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+      components: [container],
+      files: filesList
+    });
   },
   buildRulesContainer
 };
