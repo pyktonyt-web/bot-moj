@@ -1,7 +1,9 @@
 const { 
   SlashCommandBuilder, 
   PermissionFlagsBits, 
-  EmbedBuilder,
+  MessageFlags, 
+  ContainerBuilder, 
+  TextDisplayBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -10,6 +12,13 @@ const {
   ChannelType
 } = require('discord.js');
 const { 
+  createSeparator, 
+  createHeader, 
+  createCallout, 
+  createSectionWithButton, 
+  createLogoMediaGallery, 
+  getLogoAttachment, 
+  createFooter,
   buildSuccessResponse, 
   buildErrorResponse 
 } = require('../utils/componentsV2');
@@ -20,36 +29,65 @@ const { buildRulesContainer } = require('./regulamin');
 const config = require('../../config');
 
 function buildSetupControlPanel() {
-  const embed = new EmbedBuilder()
-    .setTitle('⚙️ CENTRUM KONFIGURACJI')
-    .setDescription(
-      'Wybierz moduł, którym chcesz zarządzać lub rozstawić na serwerze.\n\n' +
-      '🔐 **Weryfikacja**: Panel weryfikacji captcha.\n' +
-      '📜 **Regulamin**: Oficjalne zasady Teamu Hekera.\n' +
-      '🎫 **Tickety**: System zgłoszeń dla graczy.\n' +
-      '🎭 **Self-Role**: Wybór ról powiadomień i platform.\n' +
-      '📊 **Statystyki**: Liczniki kanałów głosowych.\n' +
-      '🚀 **Auto-Setup**: Automatyczne tworzenie całej struktury.'
-    )
-    .setColor(config.colors.primary)
-    .setFooter({ text: '© 2026 Team Hekera' });
+  const header = createHeader('CENTRUM KONFIGURACJI', '⚙️');
+
+  const desc1 = createCallout('🔐', 'Weryfikacja', 'Panel weryfikacji captcha.');
+  const desc2 = createCallout('📜', 'Regulamin', 'Regulamin serwera Team Hekera.');
+  const desc3 = createCallout('🎫', 'Tickety', 'Panel zgłoszeń Hakerolandia.');
+  const desc4 = createCallout('🎭', 'Self-Role', 'Wybór ról powiadomień i gier.');
+  const desc5 = createCallout('📊', 'Statystyki', 'Liczniki na kanałach głosowych.');
+  const desc6 = createCallout('🚀', 'Auto-Setup', 'Tworzy wszystkie kanały i panele automatycznie.');
 
   const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('btn_setup_weryfikacja').setLabel('Weryfikacja').setStyle(ButtonStyle.Success).setEmoji('🔐'),
-    new ButtonBuilder().setCustomId('btn_setup_regulamin').setLabel('Regulamin').setStyle(ButtonStyle.Primary).setEmoji('📜'),
-    new ButtonBuilder().setCustomId('btn_setup_ticket').setLabel('Tickety').setStyle(ButtonStyle.Primary).setEmoji('🎫')
+    new ButtonBuilder()
+      .setCustomId('btn_setup_weryfikacja')
+      .setLabel('Weryfikacja')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('🔐'),
+    new ButtonBuilder()
+      .setCustomId('btn_setup_regulamin')
+      .setLabel('Regulamin')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('📜'),
+    new ButtonBuilder()
+      .setCustomId('btn_setup_ticket')
+      .setLabel('Tickety')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🎫')
   );
 
   const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('btn_setup_selfrole').setLabel('Self-Role').setStyle(ButtonStyle.Secondary).setEmoji('🎭'),
-    new ButtonBuilder().setCustomId('btn_setup_statystyki').setLabel('Statystyki').setStyle(ButtonStyle.Secondary).setEmoji('📊'),
-    new ButtonBuilder().setCustomId('btn_setup_all').setLabel('Wszystko (Auto)').setStyle(ButtonStyle.Danger).setEmoji('🚀')
+    new ButtonBuilder()
+      .setCustomId('btn_setup_selfrole')
+      .setLabel('Self-Role')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🎭'),
+    new ButtonBuilder()
+      .setCustomId('btn_setup_statystyki')
+      .setLabel('Statystyki')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('📊'),
+    new ButtonBuilder()
+      .setCustomId('btn_setup_all')
+      .setLabel('Wszystko (Auto)')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🚀')
   );
 
-  return {
-    embeds: [embed],
-    components: [row1, row2]
-  };
+  return new ContainerBuilder()
+    .setAccentColor(config.colors.primary)
+    .addTextDisplayComponents(header)
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(desc1, desc2, desc3, desc4, desc5, desc6)
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent('> *Wybierz moduł, który chcesz rozstawić.*')
+    )
+    .addActionRowComponents(row1)
+    .addActionRowComponents(row2)
+    .addMediaGalleryComponents(createLogoMediaGallery())
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter());
 }
 
 async function executeAutoSetupAll(guild) {
@@ -65,7 +103,11 @@ async function executeAutoSetupAll(guild) {
     type: ChannelType.GuildText,
     parent: infoCat.id
   });
-  await regChan.send(buildRulesContainer());
+  await regChan.send({
+    flags: MessageFlags.IsComponentsV2,
+    components: [buildRulesContainer()],
+    files: [getLogoAttachment()]
+  });
   createdChannels.push(`Regulamin: ${regChan}`);
 
   const verChan = await guild.channels.create({
@@ -74,16 +116,33 @@ async function executeAutoSetupAll(guild) {
     parent: infoCat.id
   });
 
-  const verifyEmbed = new EmbedBuilder()
-    .setTitle('🔐 WERYFIKACJA KONTA')
-    .setDescription('Aby uzyskać dostęp do serwera, kliknij przycisk poniżej i przepisz kod.')
-    .setColor(config.colors.primary);
-
-  const verifyRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('btn_verify_start').setLabel('Rozpocznij Weryfikację').setStyle(ButtonStyle.Success).setEmoji('🔐')
+  const verifySection = createSectionWithButton(
+    "🛡️ ' **Weryfikacja Konta**\nAby uzyskać dostęp do serwera, kliknij przycisk poniżej i przepisz kod.",
+    "⚡ Rozpocznij Weryfikację",
+    "btn_verify_start",
+    ButtonStyle.Success,
+    "🔐"
   );
 
-  await verChan.send({ embeds: [verifyEmbed], components: [verifyRow] });
+  const verifyContainer = new ContainerBuilder()
+    .setAccentColor(config.colors.primary)
+    .addTextDisplayComponents(createHeader('WERYFIKACJA KONTA', '🔐'))
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(
+      createCallout('🤖', 'Ochrona', 'Wpisz kod captcha, aby odblokować dostęp.'),
+      createCallout('⏱️', 'Czas', 'Zajmuje kilka sekund.')
+    )
+    .addSeparatorComponents(createSeparator())
+    .addSectionComponents(verifySection)
+    .addMediaGalleryComponents(createLogoMediaGallery())
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter());
+
+  await verChan.send({
+    flags: MessageFlags.IsComponentsV2,
+    components: [verifyContainer],
+    files: [getLogoAttachment()]
+  });
   createdChannels.push(`Weryfikacja: ${verChan}`);
 
   const roleChan = await guild.channels.create({
@@ -98,28 +157,36 @@ async function executeAutoSetupAll(guild) {
     .setMinValues(0)
     .setMaxValues(6);
 
-  if (config.selfRoleCategories) {
-    for (const cat of config.selfRoleCategories) {
-      for (const opt of cat.options) {
-        selectMenu.addOptions(
-          new StringSelectMenuOptionBuilder()
-            .setLabel(opt.label)
-            .setDescription(opt.description)
-            .setValue(opt.value)
-            .setEmoji(opt.emoji)
-        );
-      }
+  for (const cat of config.selfRoleCategories) {
+    for (const opt of cat.options) {
+      selectMenu.addOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel(opt.label)
+          .setDescription(opt.description)
+          .setValue(opt.value)
+          .setEmoji(opt.emoji)
+      );
     }
   }
 
-  const roleEmbed = new EmbedBuilder()
-    .setTitle('🎭 WYBÓR RÓL')
-    .setDescription('Zaznacz interesujące Cię powiadomienia oraz platformy.')
-    .setColor(config.colors.primary);
+  const roleContainer = new ContainerBuilder()
+    .setAccentColor(config.colors.primary)
+    .addTextDisplayComponents(createHeader('WYBÓR RÓL', '🎭'))
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(
+      createCallout('🔔', 'Powiadomienia', 'Zaznacz interesujące Cię powiadomienia.'),
+      createCallout('💻', 'Platformy', 'Zaznacz platformę na której grasz.')
+    )
+    .addSeparatorComponents(createSeparator())
+    .addActionRowComponents(new ActionRowBuilder().addComponents(selectMenu))
+    .addMediaGalleryComponents(createLogoMediaGallery())
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter());
 
-  await roleChan.send({ 
-    embeds: [roleEmbed], 
-    components: [new ActionRowBuilder().addComponents(selectMenu)] 
+  await roleChan.send({
+    flags: MessageFlags.IsComponentsV2,
+    components: [roleContainer],
+    files: [getLogoAttachment()]
   });
   createdChannels.push(`Self-Role: ${roleChan}`);
 
@@ -140,7 +207,11 @@ async function executeAutoSetupAll(guild) {
     type: ChannelType.GuildText,
     parent: helpCat.id
   });
-  await tickChan.send(buildTicketPanelContainer());
+  await tickChan.send({
+    flags: MessageFlags.IsComponentsV2,
+    components: [buildTicketPanelContainer()],
+    files: [getLogoAttachment()]
+  });
   createdChannels.push(`Tickety: ${tickChan}`);
 
   const logChan = await guild.channels.create({
@@ -167,26 +238,54 @@ module.exports = {
     .setName('setup')
     .setDescription('Konfiguracja modułów bota')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addSubcommand(sub => sub.setName('panel').setDescription('Otwiera menu konfiguracyjne bota'))
-    .addSubcommand(sub => sub.setName('wszystko').setDescription('Automatyczna konfiguracja serwera'))
+    .addSubcommand(sub =>
+      sub
+        .setName('panel')
+        .setDescription('Otwiera menu konfiguracyjne bota')
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName('wszystko')
+        .setDescription('Automatyczna konfiguracja serwera')
+    )
     .addSubcommand(sub =>
       sub
         .setName('weryfikacja')
         .setDescription('Wysyła panel weryfikacji')
-        .addChannelOption(opt => opt.setName('kanal').setDescription('Kanał tekstowy').setRequired(false))
-        .addRoleOption(opt => opt.setName('rola_zweryfikowany').setDescription('Rola po weryfikacji').setRequired(false))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal')
+            .setDescription('Kanał tekstowy')
+            .setRequired(false)
+        )
+        .addRoleOption(opt =>
+          opt
+            .setName('rola_zweryfikowany')
+            .setDescription('Rola po weryfikacji')
+            .setRequired(false)
+        )
     )
     .addSubcommand(sub =>
       sub
         .setName('regulamin')
         .setDescription('Wysyła panel regulaminu')
-        .addChannelOption(opt => opt.setName('kanal').setDescription('Kanał tekstowy').setRequired(false))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal')
+            .setDescription('Kanał tekstowy')
+            .setRequired(false)
+        )
     )
     .addSubcommand(sub =>
       sub
         .setName('selfrole')
         .setDescription('Wysyła panel ról')
-        .addChannelOption(opt => opt.setName('kanal').setDescription('Kanał tekstowy').setRequired(false))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal')
+            .setDescription('Kanał tekstowy')
+            .setRequired(false)
+        )
     )
     .addSubcommand(sub =>
       sub
@@ -197,22 +296,52 @@ module.exports = {
       sub
         .setName('powitania')
         .setDescription('Ustawia kanały powitań i pożegnań')
-        .addChannelOption(opt => opt.setName('kanal_powitan').setDescription('Kanał powitań').setRequired(false))
-        .addChannelOption(opt => opt.setName('kanal_pozegnan').setDescription('Kanał pożegnań').setRequired(false))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal_powitan')
+            .setDescription('Kanał powitań')
+            .setRequired(false)
+        )
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal_pozegnan')
+            .setDescription('Kanał pożegnań')
+            .setRequired(false)
+        )
     )
     .addSubcommand(sub =>
       sub
         .setName('logi')
         .setDescription('Ustawia kanał logów')
-        .addChannelOption(opt => opt.setName('kanal_logi').setDescription('Kanał logów').setRequired(true))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal_logi')
+            .setDescription('Kanał logów')
+            .setRequired(true)
+        )
     )
     .addSubcommand(sub =>
       sub
         .setName('ticket')
         .setDescription('Wysyła panel ticketów')
-        .addChannelOption(opt => opt.setName('kanal').setDescription('Kanał tekstowy').setRequired(false))
-        .addChannelOption(opt => opt.setName('kategoria').setDescription('Kategoria na zgłoszenia').setRequired(false))
-        .addRoleOption(opt => opt.setName('rola_support').setDescription('Rola supportu').setRequired(false))
+        .addChannelOption(opt =>
+          opt
+            .setName('kanal')
+            .setDescription('Kanał tekstowy')
+            .setRequired(false)
+        )
+        .addChannelOption(opt =>
+          opt
+            .setName('kategoria')
+            .setDescription('Kategoria na zgłoszenia')
+            .setRequired(false)
+        )
+        .addRoleOption(opt =>
+          opt
+            .setName('rola_support')
+            .setDescription('Rola supportu')
+            .setRequired(false)
+        )
     ),
 
   async execute(interaction) {
@@ -220,17 +349,22 @@ module.exports = {
     const guild = interaction.guild;
 
     if (sub === 'panel') {
-      return await interaction.reply({ ...buildSetupControlPanel(), ephemeral: true });
+      const container = buildSetupControlPanel();
+      return await interaction.reply({
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        components: [container],
+        files: [getLogoAttachment()]
+      });
     }
 
     if (sub === 'wszystko') {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       try {
         const results = await executeAutoSetupAll(guild);
         return await interaction.editReply(
           buildSuccessResponse(
             'Konfiguracja Zakończona',
-            `Skonfigurowano serwer:\n` + results.map(r => `• ${r}`).join('\n')
+            `Skonfigurowano serwer:\n` + results.map(r => `▎ 🚀 ' ${r}`).join('\n')
           )
         );
       } catch (err) {
@@ -252,16 +386,33 @@ module.exports = {
         updateGuildConfig(guild.id, { verifiedRoleId: verifiedRole.id });
       }
 
-      const verifyEmbed = new EmbedBuilder()
-        .setTitle('🔐 WERYFIKACJA KONTA')
-        .setDescription('Aby uzyskać dostęp do serwera, kliknij przycisk poniżej i przepisz kod.')
-        .setColor(config.colors.primary);
-
-      const verifyRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('btn_verify_start').setLabel('Rozpocznij Weryfikację').setStyle(ButtonStyle.Success).setEmoji('🔐')
+      const verifySection = createSectionWithButton(
+        "🛡️ ' **Weryfikacja Konta**\nAby uzyskać dostęp do serwera, kliknij przycisk poniżej i przepisz kod.",
+        "⚡ Rozpocznij Weryfikację",
+        "btn_verify_start",
+        ButtonStyle.Success,
+        "🔐"
       );
 
-      await targetChan.send({ embeds: [verifyEmbed], components: [verifyRow] });
+      const container = new ContainerBuilder()
+        .setAccentColor(config.colors.primary)
+        .addTextDisplayComponents(createHeader('WERYFIKACJA KONTA', '🔐'))
+        .addSeparatorComponents(createSeparator())
+        .addTextDisplayComponents(
+          createCallout('🤖', 'Ochrona', 'Przepisz kod captcha, aby odblokować dostęp do serwera.'),
+          createCallout('⏱️', 'Czas', 'Zajmuje kilka sekund.')
+        )
+        .addSeparatorComponents(createSeparator())
+        .addSectionComponents(verifySection)
+        .addMediaGalleryComponents(createLogoMediaGallery())
+        .addSeparatorComponents(createSeparator())
+        .addTextDisplayComponents(createFooter());
+
+      await targetChan.send({
+        flags: MessageFlags.IsComponentsV2,
+        components: [container],
+        files: [getLogoAttachment()]
+      });
 
       return await interaction.reply(
         buildSuccessResponse('Wdrożono Panel Weryfikacji', `Wysłano panel na kanał ${targetChan}.${verifiedRole ? ` Rola: ${verifiedRole}.` : ''}`)
@@ -274,7 +425,13 @@ module.exports = {
         return await interaction.reply(buildErrorResponse('Błąd', 'Kanał musi być tekstowy!'));
       }
 
-      await targetChan.send(buildRulesContainer());
+      const container = buildRulesContainer();
+      await targetChan.send({
+        flags: MessageFlags.IsComponentsV2,
+        components: [container],
+        files: [getLogoAttachment()]
+      });
+
       return await interaction.reply(
         buildSuccessResponse('Wdrożono Regulamin', `Regulamin wysłany na ${targetChan}.`)
       );
@@ -282,6 +439,7 @@ module.exports = {
 
     if (sub === 'selfrole') {
       const targetChan = interaction.options.getChannel('kanal') || interaction.channel;
+
       if (!targetChan.isTextBased()) {
         return await interaction.reply(buildErrorResponse('Błąd', 'Kanał musi być tekstowy!'));
       }
@@ -292,28 +450,41 @@ module.exports = {
         .setMinValues(0)
         .setMaxValues(6);
 
-      if (config.selfRoleCategories) {
-        for (const cat of config.selfRoleCategories) {
-          for (const opt of cat.options) {
-            selectMenu.addOptions(
-              new StringSelectMenuOptionBuilder()
-                .setLabel(opt.label)
-                .setDescription(opt.description)
-                .setValue(opt.value)
-                .setEmoji(opt.emoji)
-            );
-          }
+      for (const cat of config.selfRoleCategories) {
+        for (const opt of cat.options) {
+          selectMenu.addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel(opt.label)
+              .setDescription(opt.description)
+              .setValue(opt.value)
+              .setEmoji(opt.emoji)
+          );
         }
       }
 
-      const roleEmbed = new EmbedBuilder()
-        .setTitle('🎭 WYBÓR RÓL')
-        .setDescription('Zaznacz interesujące Cię powiadomienia oraz platformy z poniższej listy.')
-        .setColor(config.colors.primary);
+      const menuRow = new ActionRowBuilder().addComponents(selectMenu);
+
+      const container = new ContainerBuilder()
+        .setAccentColor(config.colors.primary)
+        .addTextDisplayComponents(createHeader('WYBÓR RÓL', '🎭'))
+        .addSeparatorComponents(createSeparator())
+        .addTextDisplayComponents(
+          createCallout('🔔', 'Powiadomienia', 'Zaznacz powiadomienia, które chcesz otrzymywać.'),
+          createCallout('💻', 'Platformy', 'Wybierz platformy sprzętowe.')
+        )
+        .addSeparatorComponents(createSeparator())
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('> *Wybierz role z poniższej listy.*')
+        )
+        .addActionRowComponents(menuRow)
+        .addMediaGalleryComponents(createLogoMediaGallery())
+        .addSeparatorComponents(createSeparator())
+        .addTextDisplayComponents(createFooter());
 
       await targetChan.send({
-        embeds: [roleEmbed],
-        components: [new ActionRowBuilder().addComponents(selectMenu)]
+        flags: MessageFlags.IsComponentsV2,
+        components: [container],
+        files: [getLogoAttachment()]
       });
 
       return await interaction.reply(
@@ -322,14 +493,18 @@ module.exports = {
     }
 
     if (sub === 'statystyki') {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       try {
         const created = await setupStatsChannels(guild);
         return await interaction.editReply(
           buildSuccessResponse(
             'Utworzono Statystyki',
-            `Utworzono kategorię **${created.category.name}** i kanały statystyk!`
+            `Utworzono kategorię **${created.category.name}** i kanały:\n` +
+            `▎ 🧒 ' Widzowie: ${created.membersChan}\n` +
+            `▎ 🤖 ' Boty: ${created.botsChan}\n` +
+            `▎ 🔨 ' Bany: ${created.bansChan}\n` +
+            `▎ ✨ ' Nowy: ${created.newestChan}`
           )
         );
       } catch (err) {
@@ -350,7 +525,11 @@ module.exports = {
       updateGuildConfig(guild.id, updates);
 
       return await interaction.reply(
-        buildSuccessResponse('Zapisano Ustawienia', 'Ustawienia kanałów powitań i pożegnań zostały zaktualizowane.')
+        buildSuccessResponse(
+          'Zapisano Ustawienia',
+          `${welcomeChan ? `▎ 👋 ' **Powitania**: ${welcomeChan}\n` : ''}` +
+          `${goodbyeChan ? `▎ 🚪 ' **Pożegnania**: ${goodbyeChan}\n` : ''}`
+        )
       );
     }
 
@@ -359,7 +538,7 @@ module.exports = {
       updateGuildConfig(guild.id, { logChannelId: logChan.id });
 
       return await interaction.reply(
-        buildSuccessResponse('Zapisano Kanał Logów', `Logi będą wysyłane na kanał ${logChan}.`)
+        buildSuccessResponse('Zapisano Kanał Logów', `Logi będą wysyłane na ${logChan}.`)
       );
     }
 
@@ -369,7 +548,9 @@ module.exports = {
       const supportRole = interaction.options.getRole('rola_support');
 
       if (!targetChan.isTextBased()) {
-        return await interaction.reply(buildErrorResponse('Błąd', 'Kanał musi być tekstowy!'));
+        return await interaction.reply(
+          buildErrorResponse('Błąd', 'Kanał musi być tekstowy!')
+        );
       }
 
       const updates = {};
@@ -379,10 +560,21 @@ module.exports = {
         updateGuildConfig(guild.id, updates);
       }
 
-      await targetChan.send(buildTicketPanelContainer());
+      const container = buildTicketPanelContainer();
+
+      await targetChan.send({
+        flags: MessageFlags.IsComponentsV2,
+        components: [container],
+        files: [getLogoAttachment()]
+      });
 
       return await interaction.reply(
-        buildSuccessResponse('Wysłano Panel Ticketów', `Panel wysłany na ${targetChan}.`)
+        buildSuccessResponse(
+          'Wysłano Panel Ticketów',
+          `Panel wysłany na ${targetChan}.\n` +
+          `${ticketCategory ? `▎ 📁 ' Kategoria: ${ticketCategory.name}\n` : ''}` +
+          `${supportRole ? `▎ 🛡️ ' Rola: ${supportRole}\n` : ''}`
+        )
       );
     }
   },
