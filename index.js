@@ -36,16 +36,18 @@ async function start() {
     loadEvents(client);
   }
 
-  if (commandsData && commandsData.length > 0) {
-    await registerSlashCommands(client, commandsData);
-  }
-
   if (!config.token) {
     console.error('Brak tokenu bota w .env');
     process.exit(1);
   }
 
+  // 1. Najpierw logowanie bota, żeby załadował cache serwerów
   await client.login(config.token);
+
+  // 2. Dopiero teraz rejestracja komend dla aktywnych serwerów
+  if (commandsData && commandsData.length > 0) {
+    await registerSlashCommands(client, commandsData);
+  }
 }
 
 process.on('unhandledRejection', (err) => {
