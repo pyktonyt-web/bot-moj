@@ -24,19 +24,9 @@ function buildRulesContainer() {
     `> Zanim zaczniesz działać — przeczytaj to uważnie. Dołączając, akceptujesz te zasady. 😎`
   );
 
-  // Zabezpieczenie przed pustą lub brakującą tablicą reguł w config.js
-  const rulesList = (config.rules && config.rules.length > 0) ? config.rules : [
-    {
-      number: 1,
-      title: 'Zasada domyślna',
-      emoji: '📌',
-      points: ['Uzupełnij tablicę rules w pliku config.js']
-    }
-  ];
-
-  const ruleDisplays = rulesList.map(r => {
-    const pointsText = (r.points && r.points.length > 0) ? r.points.map(p => `> ${p}`).join('\n') : '> Brak punktów.';
-    const content = `▎ ${r.emoji} ' **${r.number}. ${r.title}**\n` + pointsText;
+  const ruleDisplays = config.rules.map(r => {
+    const content = `▎ ${r.emoji} ' **${r.number}. ${r.title}**\n` +
+      r.points.map(p => `> ${p}`).join('\n');
     return new TextDisplayBuilder().setContent(content);
   });
 
@@ -53,8 +43,8 @@ function buildRulesContainer() {
     "✅"
   );
 
-  const container = new ContainerBuilder()
-    .setAccentColor(config.colors?.primary || '#5865F2')
+  return new ContainerBuilder()
+    .setAccentColor(config.colors.primary)
     .addTextDisplayComponents(header)
     .addSeparatorComponents(createSeparator())
     .addTextDisplayComponents(intro)
@@ -63,22 +53,10 @@ function buildRulesContainer() {
     .addSeparatorComponents(createSeparator())
     .addTextDisplayComponents(outro)
     .addSeparatorComponents(createSeparator())
-    .addSectionComponents(acceptSection);
-
-  // Bezpieczne dodanie galerii, jeśli istnieje
-  const mediaGallery = createLogoMediaGallery();
-  if (mediaGallery && (Array.isArray(mediaGallery) ? mediaGallery.length > 0 : true)) {
-    try {
-      container.addMediaGalleryComponents(mediaGallery);
-      container.addSeparatorComponents(createSeparator());
-    } catch (e) {
-      // Ignorujemy błąd, jeśli galeria jest pusta
-    }
-  }
-
-  container.addTextDisplayComponents(createFooter('© 2026 Team Hekera'));
-
-  return container;
+    .addSectionComponents(acceptSection)
+    .addMediaGalleryComponents(createLogoMediaGallery())
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter('© 2026 Team Hekera'));
 }
 
 module.exports = {
@@ -96,10 +74,6 @@ module.exports = {
   async execute(interaction) {
     const targetChannel = interaction.options.getChannel('kanal');
     const container = buildRulesContainer();
-    
-    // Bezpieczne filtrowanie załącznika (zapobiega błędom [null])
-    const logoAttachment = getLogoAttachment();
-    const filesList = logoAttachment ? [logoAttachment] : [];
 
     if (targetChannel) {
       if (!targetChannel.isTextBased()) {
@@ -112,7 +86,7 @@ module.exports = {
       await targetChannel.send({
         flags: MessageFlags.IsComponentsV2,
         components: [container],
-        files: filesList
+        files: [getLogoAttachment()]
       });
 
       return await interaction.reply({
@@ -124,7 +98,7 @@ module.exports = {
     return await interaction.reply({
       flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
       components: [container],
-      files: filesList
+      files: [getLogoAttachment()]
     });
   },
   buildRulesContainer
