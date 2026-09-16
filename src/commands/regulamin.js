@@ -24,9 +24,19 @@ function buildRulesContainer() {
     `> Zanim zaczniesz działać — przeczytaj to uważnie. Dołączając, akceptujesz te zasady. 😎`
   );
 
-  const ruleDisplays = config.rules.map(r => {
-    const content = `▎ ${r.emoji} ' **${r.number}. ${r.title}**\n` +
-      r.points.map(p => `> ${p}`).join('\n');
+  // Zabezpieczenie przed pustą tablicą reguł (zapobiega błędom walidacji V2)
+  const rulesList = config.rules && config.rules.length > 0 ? config.rules : [
+    {
+      number: 1,
+      title: 'Zasada domyślna',
+      emoji: '📌',
+      points: ['Uzupełnij tablicę rules w pliku config.js!']
+    }
+  ];
+
+  const ruleDisplays = rulesList.map(r => {
+    const pointsText = r.points && r.points.length > 0 ? r.points.map(p => `> ${p}`).join('\n') : '> Brak punktów.';
+    const content = `▎ ${r.emoji} ' **${r.number}. ${r.title}**\n` + pointsText;
     return new TextDisplayBuilder().setContent(content);
   });
 
