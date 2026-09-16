@@ -1,73 +1,119 @@
-const { 
-  TextDisplayBuilder, 
-  SeparatorBuilder, 
-  ButtonBuilder, 
-  EmbedBuilder,
-  MessageFlags 
+const {
+  MessageFlags,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  SectionBuilder,
+  ThumbnailBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  AttachmentBuilder
 } = require('discord.js');
+const path = require('path');
+const config = require('../../config');
 
-function createHeader(text, emoji) {
-  return new TextDisplayBuilder().setContent(`### ${emoji} ${text}`);
+function createSeparator(spacing = SeparatorSpacingSize.Small, divider = true) {
+  return new SeparatorBuilder().setDivider(divider).setSpacing(spacing);
 }
 
-function createSeparator() {
-  return new SeparatorBuilder();
+function createHeader(title, emoji = '💻') {
+  return new TextDisplayBuilder().setContent(`### [ ${emoji} ' ${title.toUpperCase()} ]`);
+}
+
+function createCodeblockHeader(text) {
+  return new TextDisplayBuilder().setContent(`\`\`\`${config.brandName} × ${text.toUpperCase()}\`\`\``);
 }
 
 function createCallout(emoji, title, description) {
-  return new TextDisplayBuilder().setContent(`> **${emoji} ${title}**\n> ${description}`);
+  return new TextDisplayBuilder().setContent(`▎ ${emoji} ' **${title}**: ${description}`);
 }
 
-function createSectionWithButton(text) {
-  return new TextDisplayBuilder().setContent(text);
+function createSectionWithThumbnail(contentLines, avatarUrl) {
+  const content = Array.isArray(contentLines) ? contentLines.join('\n') : contentLines;
+  return new SectionBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+    .setThumbnailAccessory(
+      new ThumbnailBuilder({
+        media: { url: avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png' }
+      })
+    );
+}
+
+function createSectionWithButton(text, buttonLabel, buttonUrlOrCustomId, style = ButtonStyle.Link, emoji = null) {
+  const btn = new ButtonBuilder().setLabel(buttonLabel).setStyle(style);
+  if (emoji) btn.setEmoji(emoji);
+
+  if (style === ButtonStyle.Link) {
+    btn.setURL(buttonUrlOrCustomId);
+  } else {
+    btn.setCustomId(buttonUrlOrCustomId);
+  }
+
+  return new SectionBuilder()
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(text))
+    .setButtonAccessory(btn);
+}
+
+function createFooter(customText = null) {
+  return new TextDisplayBuilder().setContent(customText || config.systemFooter);
 }
 
 function createLogoMediaGallery() {
-  // Zwraca pustą tablicę lub komponent galerii
-  return [];
+  return new MediaGalleryBuilder().addItems(
+    new MediaGalleryItemBuilder().setURL(`attachment://${config.assets.logoAttachmentName}`)
+  );
 }
 
 function getLogoAttachment() {
-  // Zwracamy null bezpiecznie (w razie braku pliku graficznego)
-  return null;
+  const fullPath = path.join(__dirname, '../../', config.assets.logoPath);
+  return new AttachmentBuilder(fullPath, { name: config.assets.logoAttachmentName });
 }
 
-function createFooter(text = '© 2026 Team Hekera') {
-  return new TextDisplayBuilder().setContent(`-* ${text}`);
-}
+function buildSuccessResponse(title, message, options = {}) {
+  const container = new ContainerBuilder()
+    .setAccentColor(config.colors.primary)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`### [ ✅ ' ${title.toUpperCase()} ]`),
+      createCallout('⚡', 'Status Operacji', message)
+    )
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter());
 
-function buildSuccessResponse(title, description) {
   return {
-    embeds: [
-      new EmbedBuilder()
-        .setTitle(`✅ ${title}`)
-        .setDescription(description)
-        .setColor('#57F287')
-    ],
-    flags: MessageFlags.Ephemeral
+    flags: (options.ephemeral !== false ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2,
+    components: [container]
   };
 }
 
-function buildErrorResponse(title, description) {
+function buildErrorResponse(title, message, options = {}) {
+  const container = new ContainerBuilder()
+    .setAccentColor(config.colors.danger)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`### [ ❌ ' ${title.toUpperCase()} ]`),
+      createCallout('⚠️', 'Błąd', message)
+    )
+    .addSeparatorComponents(createSeparator())
+    .addTextDisplayComponents(createFooter());
+
   return {
-    embeds: [
-      new EmbedBuilder()
-        .setTitle(`❌ ${title}`)
-        .setDescription(description)
-        .setColor('#ED4245')
-    ],
-    flags: MessageFlags.Ephemeral
+    flags: (options.ephemeral !== false ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2,
+    components: [container]
   };
 }
 
 module.exports = {
   createSeparator,
   createHeader,
+  createCodeblockHeader,
   createCallout,
+  createSectionWithThumbnail,
   createSectionWithButton,
+  createFooter,
   createLogoMediaGallery,
   getLogoAttachment,
-  createFooter,
   buildSuccessResponse,
   buildErrorResponse
 };
