@@ -18,7 +18,7 @@ module.exports = {
 
   status: {
     type: 'Watching',
-    text: 'Hakerski | /pomoc'
+    text: 'Nowi widzowie'
   },
 
   assets: {
