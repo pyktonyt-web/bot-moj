@@ -2,28 +2,30 @@ const fs = require('fs');
 const path = require('path');
 
 function loadEvents(client) {
-  // Nasłuchiwanie na użycie komend slash
-  client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+  const eventsPath = path.join(__dirname, '../events');
+  if (!fs.existsSync(eventsPath)) {
+    fs.mkdirSync(eventsPath, { recursive: true });
+    return;
+  }
 
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
+  const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
+  for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
     try {
-      await command.execute(interaction, client);
-    } catch (error) {
-      console.error(`Błąd podczas wykonywania komendy ${interaction.commandName}:`, error);
-      
-      const errorMessage = { content: 'Wystąpił błąd podczas wykonywania tej komendy!', ephemeral: true };
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
+      const event = require(filePath);
+      if (event?.name && typeof event.execute === 'function') {
+        if (event.once) {
+          client.once(event.name, (...args) => event.execute(...args, client));
+        } else {
+          client.on(event.name, (...args) => event.execute(...args, client));
+        }
+        console.log(`Załadowano zdarzenie: ${event.name}`);
       }
+    } catch (err) {
+      console.error(`Błąd podczas ładowania zdarzenia ${file}:`, err);
     }
-  });
-
-  console.log('Załadowano handler interakcji (slash commands).');
+  }
 }
 
-module.exports = loadEvents;
+module.exports = { loadEvents };
